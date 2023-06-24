@@ -52,7 +52,11 @@
         background:white;  
         height:28px; 
         margin:1px; 
+        margin-right:10px;margin-top:6px;
         border:1px solid #ddd;
+        border-radius: 5px;
+        padding-left:10px;
+        padding-right:10px;
       }
       #signout_button:hover
       {
@@ -63,7 +67,7 @@
       } 
       #signout_button:hover:after
       {
-        content:" - Sign Out";
+        content:" - SIGN OUT";
       }
       #sidebar
       {
@@ -86,6 +90,31 @@
         height:100%;
         background:white;
       }
+      #WorkspaceSelector
+      {
+        position:relative;
+        background-color:white;
+        border: 1px solid #ccc;
+        float:left;
+        margin-left:10px;
+        height:24px;
+        width:100%;
+        margin-right:10px;
+        flex-grow: 1;
+        border-radius: 5px;
+        font-weight:bold;
+      }
+      #FileListContainer
+      {
+        display:flex;
+        flex-direction: row;
+        width:100%;
+        height:100%;
+      }
+      #FileListContent
+      {
+        font-size:11px;
+      }
     </style>
   </head>
   <body>
@@ -95,25 +124,34 @@
     </div>
     <div id="rootcontainer" style="display:none;">
       <div id="sidebar">
-        <button onclick="createPicker()">Select Folder</button>
-        <div style="position:absolute; height:30px; border-top: 1px solid #efefef; bottom:6px; left:0px; width:100%; box-sizing: border-box;">  
-          <img id="ProfilePicture" referrerpolicy="no-referrer" alt="Pic" Title="Profile Picture" style="position: relative; float:left; width:26px; height:26px; margin:1px; border: 1px solid #ddd;"/>
-          <div id="EmailDisplay" style="overflow:hidden; font-family:calibri; font-size:18px; color:#333; text-align: left; padding-left: 6px; padding-top: 6px; font-weight:700;"></div>
+        <div style="position:absolute; height:30px; border-bottom: 1px solid #efefef; top:6px; left:0px; width:100%; box-sizing: border-box;"> 
+          <button id="addWorkspaceButton" onclick="createPicker()" style="position:relative;float:right;margin-right:10px;border-radius: 5px; background-color: #2f78ff; color:white; font-weight: 900; border: none; font-size: 17px; width:30px; height:24px;padding:0px; cursor:pointer;">+</button>
+          <div style="display:flex; align-items: center;">
+            <select id="WorkspaceSelector">
+              <option value="" disabled selected>Select your Workspace</option>
+              <option value="1"  selected>Select your Workspace elect your Worksp elect your Worksp elect your Worksp</option>
+              <option value="2"  selected>Select your Workspace elect your Worksp elect your Worksp elect your Worksp</option>
+              <option value="3"  selected>Hello</option>
+              <option value="4"  selected>Select your Workspace elect your Worksp elect your Worksp elect your Worksp</option>
+            </select>
+          </div>
+        </div>
+        <div id="FileListContainer">
+          <div style="flex-grow:1; margin-top:70px;margin-bottom:50px; position:relative;">
+            <div id="FileListContent" style="position:absolute; width:100%; height:100%; left:0px; top:0px; background-color: #ccc;">
+                <!-- Side bar content goes in here -->
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute; height:36px; border-top: 1px solid #efefef; bottom:6px; left:0px; width:100%; box-sizing: border-box;">  
+          <img id="ProfilePicture" referrerpolicy="no-referrer" alt="Pic" Title="Profile Picture" style="position: relative;border-radius: 5px;  float:left; width:26px; height:26px; margin:1px; margin-left:10px;border: 1px solid #ddd;margin-top:6px;"/>
+          <div id="EmailDisplay" style="overflow:hidden; font-family:calibri; font-size:18px; color:#333; text-align: left; padding-left: 6px; padding-top: 10px; font-weight:700;"></div>
           <button id="signout_button" onclick="handleSignoutClick()" title="Ideograph to leave; to depart; to separate, distant from, a village in ancient times in Anyi CJK">䧁</button>
         </div>
       </div>
       <div id="contentholder"></div>
     </div>
 
-    
-    <div style="display: none;">
-      <!--Add buttons to initiate auth sequence and sign out-->
-      <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
-      <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
-
-      <pre id="content" style="white-space: pre-wrap;"></pre>
-
-    </div>
 
     <script type="text/javascript">
 
@@ -170,7 +208,6 @@
           gapi.client.setToken({ access_token: accessToken });
           document.getElementById('rootcontainer').style.display = 'block';
           document.getElementById('AuthScreen').style.display = 'none';
-          listFiles();
           fetchUserInfo();
           // Schedule the token renewal before it expires
           scheduleTokenRenewal();
@@ -239,7 +276,6 @@
           }
           document.getElementById('rootcontainer').style.display = 'block';
           document.getElementById('AuthScreen').style.display = 'none';
-          await listFiles();
           // Save the access token in a cookie with a 7-day expiration
           setCookie("access_token", resp.access_token, 7);
           fetchUserInfo();
@@ -297,10 +333,13 @@
 
     // Define the function to handle folder selection
     function handleFolderSelection(data) {
+      console.log('picker callback called');
       if (data.action === google.picker.Action.PICKED) {
         var folder = data.docs[0];
         console.log('Selected folder:', folder);
+        
         // Perform actions with the selected folder
+        UpdateFileHierarchyToWorkspace(folder["id"]); 
       }
     }
 
@@ -311,8 +350,13 @@
 
     // Create and render the folder picker
     function createPicker() {
+      var docsView = new google.picker.DocsView()
+          .setIncludeFolders(true) 
+          .setMimeTypes('application/vnd.google-apps.folder')
+          .setSelectFolderEnabled(true);
+
       var picker = new google.picker.PickerBuilder()
-        .addView(google.picker.ViewId.FOLDERS)
+        .addView(docsView)
         .setOAuthToken(gapi.auth.getToken().access_token)
         .setCallback(handleFolderSelection)
         .build();
@@ -320,31 +364,43 @@
       picker.setVisible(true);
     }
 
-      /**
-       * Print metadata for first 10 files.
-       */
-      async function listFiles() {
-        let response;
-        try {
-          response = await gapi.client.drive.files.list({
-            'pageSize': 10,
-            'fields': 'files(id, name)',
-          });
-        } catch (err) {
-          document.getElementById('content').innerText = err.message;
-          return;
-        }
-        const files = response.result.files;
-        if (!files || files.length == 0) {
-          document.getElementById('content').innerText = 'No files found.';
-          return;
-        }
-        // Flatten to string to display
-        const output = files.reduce(
-            (str, file) => `${str}${file.name} (${file.id})\n`,
-            'Files:\n');
-        document.getElementById('content').innerText = output;
+    async function getFileHierarchy(directoryId, indent = '-') {
+      let response;
+      try {
+        response = await gapi.client.drive.files.list({
+          'q': `'${directoryId}' in parents`,
+          'pageSize': 100,
+          'fields': 'files(id, name, mimeType)',
+        });
+      } catch (err) {
+        document.getElementById('FileListContent').innerText = err.message;
+        return '';
       }
+      
+      const files = response.result.files;
+      if (!files || files.length === 0) {
+        document.getElementById('FileListContent').innerText = 'No files found.';
+        return '';
+      }
+      
+      let output = '';
+      for (const file of files) {
+        // output += `${indent}${file.name} (${file.id})\n`;
+        output += `${indent}${file.name}\n`;
+        if (file.mimeType === 'application/vnd.google-apps.folder') {
+          output += await getFileHierarchy(file.id, indent + '-');
+        }
+      }
+      
+      return output;
+    }
+
+    async function UpdateFileHierarchyToWorkspace(directoryId) 
+    {
+        const output = await getFileHierarchy(directoryId);
+        document.getElementById('FileListContent').innerText = `start \n ${output} \n end`;
+    }
+
 
       function setCookie(cname, cvalue, exdays) {
         const d = new Date();
