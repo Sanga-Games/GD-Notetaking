@@ -1,42 +1,133 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Drive API Quickstart</title>
+    <title>Sanga Games  - Docs</title>
     <meta charset="utf-8" />
+    <style>
+      html, body 
+      {
+        min-height: 100% !important;
+        height:100%;
+        margin:0px;
+        border:0px;
+      }
+      #rootcontainer,#AuthScreen
+      {
+        display: absolute;
+        height:100%;
+        width:100%;
+      }
+      #signin_button
+      {
+        background:#2f78ff;
+        font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        font-weight: bold;
+        font-size: 20px;
+        border-radius: 30px;
+        padding:10px;
+        padding-left: 60px;
+        padding-right: 60px;
+        color:white;
+        border:0px;
+        box-shadow:5px 5px #eee;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+        cursor:pointer;
+      }
+      #signin_button:hover
+      {
+        background:#5c2fff;
+      }
+      #signout_button
+      {
+        position:absolute;
+        font-weight:bold; 
+        color:#333; 
+        font-size: 14px;
+        right:0px; 
+        top:0px; 
+        background:white;  
+        height:28px; 
+        margin:1px; 
+        border:1px solid #ddd;
+      }
+      #signout_button:hover
+      {
+        background-color:#ff2f5c;
+        color:white;
+        cursor: pointer;
+        transition: 0.3s;
+      } 
+      #signout_button:hover:after
+      {
+        content:" - Sign Out";
+      }
+      #sidebar
+      {
+        position: relative;  
+        resize: horizontal;
+        overflow: auto;
+        min-width:200px;
+        width:300px;
+        max-width:600px;
+        float:left;
+        height:100%;
+        background:#fafafa;
+        box-sizing: border-box;
+        border-right:  1px solid #efefef;
+      }
+      #contentholder
+      {  
+        position: relative;
+        overflow: auto;
+        height:100%;
+        background:white;
+      }
+    </style>
   </head>
   <body>
-    <p>Drive API Quickstart</p>
 
-    <!--Add buttons to initiate auth sequence and sign out-->
-    <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
-    <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
+    <div id="AuthScreen">
+      <button id="signin_button"  style="display: none;" onclick="handleAuthClick()">SIGN IN</button>
+    </div>
+    <div id="rootcontainer" style="display:none;">
+      <div id="sidebar">
+        <button onclick="createPicker()">Select Folder</button>
+        <div style="position:absolute; height:30px; border-top: 1px solid #efefef; bottom:6px; left:0px; width:100%; box-sizing: border-box;">  
+          <img id="ProfilePicture" referrerpolicy="no-referrer" alt="Pic" Title="Profile Picture" style="position: relative; float:left; width:26px; height:26px; margin:1px; border: 1px solid #ddd;"/>
+          <div id="EmailDisplay" style="overflow:hidden; font-family:calibri; font-size:18px; color:#333; text-align: left; padding-left: 6px; padding-top: 6px; font-weight:700;"></div>
+          <button id="signout_button" onclick="handleSignoutClick()" title="Ideograph to leave; to depart; to separate, distant from, a village in ancient times in Anyi CJK">䧁</button>
+        </div>
+      </div>
+      <div id="contentholder"></div>
+    </div>
 
-    <pre id="content" style="white-space: pre-wrap;"></pre>
+    
+    <div style="display: none;">
+      <!--Add buttons to initiate auth sequence and sign out-->
+      <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
+      <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
+
+      <pre id="content" style="white-space: pre-wrap;"></pre>
+
+    </div>
 
     <script type="text/javascript">
-      /* exported gapiLoaded */
-      /* exported gisLoaded */
-      /* exported handleAuthClick */
-      /* exported handleSignoutClick */
 
-      // TODO(developer): Set to client ID and API key from the Developer Console
       const CLIENT_ID = '922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com';
       const API_KEY = 'AIzaSyCd0pkvt1TxnXVz4uZa83Mp8zMfl77_3hU';
-
       // Discovery doc URL for APIs used by the quickstart
       const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
-
       // Authorization scopes required by the API; multiple scopes can be
       // included, separated by spaces.
-      const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
+      const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
 
       let tokenClient;
       let gapiInited = false;
       let gisInited = false;
-
-      document.getElementById('authorize_button').style.visibility = 'hidden';
-      document.getElementById('signout_button').style.visibility = 'hidden';
-
       /**
        * Callback after api.js is loaded.
        */
@@ -54,7 +145,9 @@
           discoveryDocs: [DISCOVERY_DOC],
         });
         gapiInited = true;
+        loadPicker();
         maybeEnableButtons();
+        checkAccessTokenCookie(); // Check if the user has a valid access token cookie
       }
 
       /**
@@ -69,13 +162,70 @@
         gisInited = true;
         maybeEnableButtons();
       }
+      // Check if the user has a valid access token cookie
+      function checkAccessTokenCookie() {
+        var accessToken = getCookie("access_token");
+        if (accessToken) {
+          // Set the access token in the client and refresh the file list
+          gapi.client.setToken({ access_token: accessToken });
+          document.getElementById('rootcontainer').style.display = 'block';
+          document.getElementById('AuthScreen').style.display = 'none';
+          listFiles();
+          fetchUserInfo();
+          // Schedule the token renewal before it expires
+          scheduleTokenRenewal();
+        }
+      }
+
+      // Schedule the token renewal before it expires
+      function scheduleTokenRenewal() {
+        var token = gapi.client.getToken();
+        if (token && token.expires_at) {
+          var expiresAt = token.expires_at;
+          var currentTime = Math.floor(Date.now() / 1000);
+          var timeUntilExpiration = expiresAt - currentTime;
+
+          if (timeUntilExpiration > 0) {
+            // Schedule the token renewal 1 minute before it expires
+            setTimeout(renewAccessToken, (timeUntilExpiration - 60) * 1000);
+          }
+        }
+      }
+
+      // Renew the access token
+      async function renewAccessToken() {
+        try {
+          var response = await gapi.auth2.getAuthInstance().grantOfflineAccess();
+          var code = response.code;
+
+          // Exchange the authorization code for a new access token
+          var tokenResponse = await gapi.client.getToken({
+            code: code,
+            grant_type: 'authorization_code',
+          });
+
+          if (tokenResponse && tokenResponse.access_token) {
+            var accessToken = tokenResponse.access_token;
+
+            // Set the new access token in the client and update the cookie
+            gapi.client.setToken({ access_token: accessToken });
+            setCookie("access_token", accessToken, 7);
+
+            // Schedule the next token renewal
+            scheduleTokenRenewal();
+          }
+        } catch (error) {
+          console.error("Token renewal error:", error);
+        }
+      }
+
 
       /**
        * Enables user interaction after all libraries are loaded.
        */
       function maybeEnableButtons() {
         if (gapiInited && gisInited) {
-          document.getElementById('authorize_button').style.visibility = 'visible';
+          document.getElementById('signin_button').style.display = 'block';
         }
       }
 
@@ -87,9 +237,14 @@
           if (resp.error !== undefined) {
             throw (resp);
           }
-          document.getElementById('signout_button').style.visibility = 'visible';
-          document.getElementById('authorize_button').innerText = 'Refresh';
+          document.getElementById('rootcontainer').style.display = 'block';
+          document.getElementById('AuthScreen').style.display = 'none';
           await listFiles();
+          // Save the access token in a cookie with a 7-day expiration
+          setCookie("access_token", resp.access_token, 7);
+          fetchUserInfo();
+          // Schedule the token renewal before it expires
+          scheduleTokenRenewal();
         };
 
         if (gapi.client.getToken() === null) {
@@ -110,11 +265,60 @@
         if (token !== null) {
           google.accounts.oauth2.revoke(token.access_token);
           gapi.client.setToken('');
-          document.getElementById('content').innerText = '';
-          document.getElementById('authorize_button').innerText = 'Authorize';
-          document.getElementById('signout_button').style.visibility = 'hidden';
+          document.getElementById('rootcontainer').style.display = 'none';
+          document.getElementById('AuthScreen').style.display = 'block';
+          // Delete the access token cookie
+          setCookie("access_token", "", -1);
         }
       }
+
+      async function fetchUserInfo() {
+      try {
+        const response = await gapi.client.request({
+          path: 'https://people.googleapis.com/v1/people/me?personFields=emailAddresses,names,photos',
+        });
+
+        const email = response.result.emailAddresses[0].value;
+        const pictureUrl = response.result.photos[0].url;
+
+        document.getElementById("ProfilePicture").src = pictureUrl;
+
+        const EmailArray = email.split("@");
+        document.getElementById("EmailDisplay").innerText = EmailArray[0].toUpperCase();
+
+        // Use the email and picture URL as needed (e.g., display in the UI)
+        console.log('Email:', email);
+        console.log('Picture URL:', pictureUrl);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    }
+
+
+    // Define the function to handle folder selection
+    function handleFolderSelection(data) {
+      if (data.action === google.picker.Action.PICKED) {
+        var folder = data.docs[0];
+        console.log('Selected folder:', folder);
+        // Perform actions with the selected folder
+      }
+    }
+
+    // Load the Google Picker API
+    function loadPicker() {
+      gapi.load('picker');
+    }
+
+    // Create and render the folder picker
+    function createPicker() {
+      var picker = new google.picker.PickerBuilder()
+        .addView(google.picker.ViewId.FOLDERS)
+        .setOAuthToken(gapi.auth.getToken().access_token)
+        .setCallback(handleFolderSelection)
+        .build();
+
+      picker.setVisible(true);
+    }
 
       /**
        * Print metadata for first 10 files.
@@ -140,6 +344,29 @@
             (str, file) => `${str}${file.name} (${file.id})\n`,
             'Files:\n');
         document.getElementById('content').innerText = output;
+      }
+
+      function setCookie(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays*24*60*60*1000));
+        let expires = "expires="+ d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+      }
+
+      function getCookie(cname) {
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(';');
+        for(let i = 0; i <ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+          }
+        }
+        return "";
       }
     </script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
