@@ -161,7 +161,7 @@
         <div style="position:absolute; height:30px; border-bottom: 1px solid #efefef; top:6px; left:0px; width:100%; box-sizing: border-box;"> 
           <button id="addWorkspaceButton" onclick="createPicker()" style="position:relative;float:right;margin-right:10px;border-radius: 5px; background-color: #2f78ff; color:white; font-weight: 900; border: none; font-size: 17px; width:30px; height:24px;padding:0px; cursor:pointer;">+</button>
           <div style="display:flex; align-items: center;">
-            <select id="WorkspaceSelector">
+            <select id="WorkspaceSelector" onchange="handleWorkspaceChange()">
               <option value="" disabled selected>Select your Workspace</option>
             </select>
           </div>
@@ -193,7 +193,9 @@
       const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
       // Authorization scopes required by the API; multiple scopes can be
       // included, separated by spaces.
-      const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.appdata';
+      const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
+
+
 
       let tokenClient;
       let gapiInited = false;
@@ -216,6 +218,7 @@
           apiKey: API_KEY,
           discoveryDocs: [DISCOVERY_DOC],
         });
+        gapi.client.load('drive', 'v3');
         gapiInited = true;
         loadPicker();
         maybeEnableButtons();
@@ -234,6 +237,8 @@
         gisInited = true;
         maybeEnableButtons();
       }
+
+
       // Check if the user has a valid access token cookie
       function checkAccessTokenCookie() {
         var accessToken = getCookie("access_token");
@@ -470,6 +475,12 @@
 
 
     function initializeFileTree(fileData) {
+
+      // Destroy the existing jstree instance if it exists
+      if ($('#FileListContent').jstree()) {
+        $('#FileListContent').jstree('destroy');
+      }
+
       $('#FileListContent').jstree({
         core: {
           data: generateFileTree(fileData),
@@ -504,6 +515,7 @@
 
     async function UpdateFileHierarchyToWorkspace(directoryId) {
       const hierarchy = await getFileHierarchy(directoryId);
+      console.log(hierarchy);
       const hierarchyWithLevels = hierarchy.map(file => ({ ...file, level: 0 }));
       initializeFileTree(hierarchyWithLevels);
     }
@@ -530,93 +542,56 @@
     }
 
     function fetchConfigJson() {
-      // gapi.client.drive.files
-      //   .list({
-      //     spaces: 'appDataFolder',
-      //     fields: 'files(name,id)',
-      //   })
-      //   .then((response) => {
-      //     const files = response.result.files;
-      //     console.log(files);
-      //     const configFile = files.find((file) => file.name === 'WorkspaceData.json');
-      //     if (configFile) {
-      //       gapi.client.drive.files
-      //         .get({
-      //           fileId: configFile.id,
-      //           alt: 'media',
-      //         })
-      //         .then((response) => {
-      //           const jsonData = JSON.parse(response.body);
-      //           WorkspacesJSON = jsonData; 
-      //           fillWorkspaceList();
-      //           // Use the jsonData object as needed
-      //           console.log(jsonData);
-      //         })
-      //         .catch((error) => {
-      //           console.error('Error retrieving WorkspaceData.json:', error);
-      //         });
-      //     } else {
-      //       console.error('WorkspaceData.json file not found.');
-      //     }
-      //   })
-      //   .catch((error) => {
-      //     console.error('Error retrieving file list:', error);
-      //   });
-    }
-
-    function saveConfigJson() {
-      const jsonData = JSON.stringify(WorkspacesJSON);
-
       gapi.client.drive.files
         .list({
           spaces: 'appDataFolder',
-          //q: "name='WorkspaceData.json'",
-          fields: 'files(id)',
+          fields: 'files(name,id)',
         })
         .then((response) => {
           const files = response.result.files;
-          let request;
-
           console.log(files);
-
-          if (files.length > 0) {
-            // Update the existing WorkspaceData.json file
-            const configFileId = files[0].id;
-            request = gapi.client.drive.files.update({
-              fileId: configFileId,
-              media: {
-                mimeType: 'application/json',
-                body: jsondata,
-              },
-            });
+          const configFile = files.find((file) => file.name === 'WorkspaceData.json');
+          if (configFile) {
+            gapi.client.drive.files
+              .get({
+                fileId: configFile.id,
+                alt: 'media',
+              })
+              .then((response) => {
+                console.log(response);
+                const jsonData = JSON.parse(response.body);
+                WorkspacesJSON = jsonData; 
+                fillWorkspacesList();
+              })
+              .catch((error) => {
+                console.error('Error retrieving WorkspaceData.json:', error);
+              });
           } else {
-            // Create a new WorkspaceData.json file
-            request = gapi.client.drive.files.create({
-              resource: {
-                name: 'FWorkspaceData.json', // Replace with the desired file name
-                parents: ['appDataFolder'],
-              },
-              media: {
-                mimeType: 'application/json',
-                body: jsonData,
-              },
-            });
+            console.error('WorkspaceData.json file not found.');
           }
-
-          // Execute the request to save the WorkspaceData.json file
-          request
-            .then((response) => {
-              console.log('WorkspaceData.json file saved successfully:', response.result);
-            })
-            .catch((error) => {
-              console.error('Error saving WorkspaceData.json file:', error);
-            });
         })
         .catch((error) => {
           console.error('Error retrieving file list:', error);
         });
     }
 
+    function saveConfigJson() 
+    { 
+      let fileMetadata = {
+        name : 'WorkspaceData.json',
+        parents : ['appDataFolder']
+      }
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(fileMetadata)], {type: 'application/json'}));
+      form.append('file', new Blob([JSON.stringify(WorkspacesJSON)], {type: 'application/json'}));
+      fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST',
+        headers: new Headers({'Authorization': 'Bearer ' + gapi.auth.getToken().access_token}),
+        body: form
+      })
+      .then((res) => res.json())
+      .then((res) => console.log(res));
+    }
 
 
     function fillWorkspacesList() {
@@ -646,6 +621,31 @@
       });
 
       UpdateFileHierarchyToWorkspace(WorkspacesJSON["ActiveWorkspaceID"]); 
+    }
+
+    // Function to handle workspace selection change
+    function handleWorkspaceChange() {
+      const workspaceSelector = document.getElementById('WorkspaceSelector');
+      const selectedWorkspaceId = workspaceSelector.value;
+
+      // Find the selected workspace in the WorkspacesJSON.Workspaces array
+      const selectedWorkspace = WorkspacesJSON.Workspaces.find(
+        (workspace) => workspace.id === selectedWorkspaceId
+      );
+
+      if (selectedWorkspace) {
+        // Update ActiveWorkspaceID and ActiveWorkspaceName
+        WorkspacesJSON.ActiveWorkspaceID = selectedWorkspace.id;
+        WorkspacesJSON.ActiveWorkspaceName = selectedWorkspace.name;
+
+
+        // Perform any additional actions with the selected workspace
+        UpdateFileHierarchyToWorkspace(selectedWorkspaceId);
+
+
+        // Save the updated config
+        saveConfigJson();
+      }
     }
 
 
