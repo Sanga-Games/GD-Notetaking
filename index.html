@@ -4,6 +4,7 @@
     <title>Sanga Games  - Docs</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    <meta name="referrer" content="no-referrer-when-downgrade">
     <style>
 @font-face {
   font-family: 'Sans-Serif Workhorse';
@@ -80,27 +81,11 @@
       }
       #signin_button
       {
-        background:#2f78ff;
-        font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-        font-weight: bold;
-        font-size: 20px;
-        border-radius: 30px;
-        padding:10px;
-        padding-left: 60px;
-        padding-right: 60px;
-        color:white;
-        border:0px;
-        box-shadow:5px 5px #eee;
         position: absolute;
         top: 50%;
         left: 50%;
         -ms-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
-        cursor:pointer;
-      }
-      #signin_button:hover
-      {
-        background:#5c2fff;
       }
       #signout_button
       {
@@ -218,7 +203,25 @@
   <body>
 
     <div id="AuthScreen">
-      <button id="signin_button"  style="display: none;" onclick="handleAuthClick()">SIGN IN</button>
+      <button id="signin_button_old"  style="display: none;" onclick="handleAuthClick()">SIGN IN</button>
+      <div id="g_id_onload"
+          data-client_id="922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com"
+          data-context="signin"
+          data-ux_mode="popup"
+          data-callback="HandleAuth"
+          data-auto_select="true"
+          data-itp_support="true">
+      </div>
+
+      <div class="g_id_signin" id="signin_button" 
+          data-type="standard"
+          data-shape="rectangular"
+          data-theme="filled_blue"
+          data-text="signin_with"
+          data-size="large"
+          data-logo_alignment="left"
+          data-width="200">
+      </div>
     </div>
     <div id="rootcontainer" style="display:none;">
       <div id="sidebar">
@@ -291,7 +294,6 @@
         gapiInited = true;
         loadPicker();
         maybeEnableButtons();
-        checkAccessTokenCookie(); // Check if the user has a valid access token cookie
       }
 
       /**
@@ -307,62 +309,39 @@
         maybeEnableButtons();
       }
 
-
-      // Check if the user has a valid access token cookie
-      function checkAccessTokenCookie() {
-        var accessToken = getCookie("access_token");
-        if (accessToken) {
-          // Set the access token in the client and refresh the file list
-          gapi.client.setToken({ access_token: accessToken });
+      function HandleAuth()
+      {
+        console.log("Trying to handle auth");
+        tokenClient.callback = async (resp) => {
+          if (resp.error !== undefined) {
+            throw (resp);
+          }
           document.getElementById('rootcontainer').style.display = 'block';
           document.getElementById('AuthScreen').style.display = 'none';
           fetchUserInfo();
           fetchConfigJson();
           // Schedule the token renewal before it expires
           scheduleTokenRenewal();
-        }
+        };
+        tokenClient.requestAccessToken({ prompt: '' });
       }
 
       // Schedule the token renewal before it expires
       function scheduleTokenRenewal() {
         var token = gapi.client.getToken();
-        if (token && token.expires_at) {
-          var expiresAt = token.expires_at;
-          var currentTime = Math.floor(Date.now() / 1000);
-          var timeUntilExpiration = expiresAt - currentTime;
-
-          if (timeUntilExpiration > 0) {
+        console.log(token);
+        if (token && token.expires_in) {
+          if (token.expires_in > 0) {
             // Schedule the token renewal 1 minute before it expires
-            setTimeout(renewAccessToken, (timeUntilExpiration - 60) * 1000);
+            setTimeout(renewAccessToken, token.expires_in * 1000);
           }
         }
       }
 
       // Renew the access token
       async function renewAccessToken() {
-        try {
-          var response = await gapi.auth2.getAuthInstance().grantOfflineAccess();
-          var code = response.code;
-
-          // Exchange the authorization code for a new access token
-          var tokenResponse = await gapi.client.getToken({
-            code: code,
-            grant_type: 'authorization_code',
-          });
-
-          if (tokenResponse && tokenResponse.access_token) {
-            var accessToken = tokenResponse.access_token;
-
-            // Set the new access token in the client and update the cookie
-            gapi.client.setToken({ access_token: accessToken });
-            setCookie("access_token", accessToken, 7);
-
-            // Schedule the next token renewal
-            scheduleTokenRenewal();
-          }
-        } catch (error) {
-          console.error("Token renewal error:", error);
-        }
+        console.log("trying to renew access token");
+        tokenClient.requestAccessToken({ prompt: '' });
       }
 
 
@@ -372,34 +351,6 @@
       function maybeEnableButtons() {
         if (gapiInited && gisInited) {
           document.getElementById('signin_button').style.display = 'block';
-        }
-      }
-
-      /**
-       *  Sign in the user upon button click.
-       */
-      function handleAuthClick() {
-        tokenClient.callback = async (resp) => {
-          if (resp.error !== undefined) {
-            throw (resp);
-          }
-          document.getElementById('rootcontainer').style.display = 'block';
-          document.getElementById('AuthScreen').style.display = 'none';
-          // Save the access token in a cookie with a 7-day expiration
-          setCookie("access_token", resp.access_token, 7);
-          fetchUserInfo();
-          fetchConfigJson();
-          // Schedule the token renewal before it expires
-          scheduleTokenRenewal();
-        };
-
-        if (gapi.client.getToken() === null) {
-          // Prompt the user to select a Google Account and ask for consent to share their data
-          // when establishing a new session.
-          tokenClient.requestAccessToken({prompt: 'consent'});
-        } else {
-          // Skip display of account chooser and consent dialog for an existing session.
-          tokenClient.requestAccessToken({prompt: ''});
         }
       }
 
