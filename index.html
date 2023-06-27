@@ -703,6 +703,16 @@
                   CreateNewFile(data,'application/vnd.google-apps.presentation',"New Presentation");
                 }
               },
+              addLink: {
+                label: 'Add Link',
+                action: function(data) {
+                  // Handle the Add Presentation action
+                  console.log('Add Link clicked');
+                  let linkurl = prompt("Paste Url you want to Link");
+                  let linkText = prompt("Type in Alias Name for the Link");
+                  CreateNewLink(data,linkText,linkurl);
+                }
+              },
               rename: {
                 label: 'Rename',
                 action: function(data) {
@@ -710,6 +720,20 @@
                   const instance = $.jstree.reference(data.reference);
                   var node = instance.get_node(data.reference);
                   instance.edit(node);
+                },
+                _disabled: function(data) {
+                  // Disable the "Move to Archived" menu item if the node is locked
+                  var inst = $.jstree.reference(data.reference)
+                  var node = inst.get_node(data.reference);
+                  return node.data.locked===true;
+                }
+              },
+              deleteFile: {
+                label: 'Delete',
+                action: function(data) {
+                  // Handle the Add Presentation action
+                  console.log('Add Link clicked');
+                  deleteFile(data);
                 },
                 _disabled: function(data) {
                   // Disable the "Move to Archived" menu item if the node is locked
@@ -734,7 +758,14 @@
         const selectedNode = data.instance.get_node(selectedNodeId);
 
         if (selectedNode && selectedNode.data) {
-          embedFile(selectedNode.id, selectedNode.data.mimeType);
+          if(selectedNode.data.url)
+          {
+            embedFile(selectedNode.id, selectedNode.data.mimeType,selectedNode.data.url);
+          }
+          else
+          {
+            embedFile(selectedNode.id, selectedNode.data.mimeType);
+          }
         }
       });
 
@@ -744,6 +775,14 @@
       });
 
       $('#FileListContent').on('create_node.jstree', function (e, data) {
+        
+        // Log the JSON hierarchy object
+        console.log("jstree updated");
+          SaveFileHierarchyToWorkspace();
+      });
+
+
+      $('#FileListContent').on('delete_node.jstree', function (e, data) {
         
         // Log the JSON hierarchy object
         console.log("jstree updated");
@@ -805,6 +844,43 @@
       }
     }
 
+    function deleteFile(data) {
+      // Handle the Delete action
+      const instance = $.jstree.reference(data.reference);
+      const selectedNode = instance.get_node(data.reference);
+
+
+      if (selectedNode.children.length > 0) {
+        // If the node has children, prompt the user to confirm deletion
+        const confirmDelete = confirm("This node has children. Deleting it will also delete its children. Are you sure you want to delete?");
+
+        if (confirmDelete) {
+          instance.delete_node(selectedNode);
+          moveFileToTrash(selectedNode);
+        }
+      } else {
+        // If the node has no children, simply delete it
+        instance.delete_node(selectedNode);
+        moveFileToTrash(selectedNode);
+
+      }
+    }
+
+    function moveFileToTrash(node) {
+      if(node.data.mimeType.includes('application/vnd.google-apps.'))
+      {
+        gapi.client.drive.files.update({
+          fileId: node.id,
+          trashed: true
+        }).then(function(response) {
+          console.log('File moved to trash: ', response);
+        }, function(error) {
+          console.error('Error moving file to trash: ', error);
+        });
+      }
+    }
+
+
     function CreateNewFolder(data,name)
     {
           // Handle the Add Document action
@@ -820,6 +896,31 @@
           data:{
             locked:false,
             mimeType: "application/folder",
+          }
+        };
+
+        instance.create_node(selectedNode, newNode, 'last');
+        // Select the newly created node
+        instance.select_node(newNode);
+        instance.open_node(selectedNode);
+    }
+
+    function CreateNewLink(data,name,url)
+    {
+          // Handle the Add Document action
+        const instance = $.jstree.reference(data.reference);
+        const selectedNode = instance.get_node(data.reference);
+        // Create the new child node with the document details
+        const newNodeId = timeuuid();
+        const newNodeText = name;
+
+        const newNode = {
+          id: newNodeId,
+          text: newNodeText,
+          data:{
+            locked:false,
+            mimeType: "application/link",
+            url:url
           }
         };
 
@@ -911,7 +1012,7 @@
 
 
     
-    async function embedFile(fileId, mimeType) {
+    async function embedFile(fileId, mimeType,url="") {
       let embedUrl;
       if (mimeType === 'application/vnd.google-apps.document') {
         embedUrl = `https://docs.google.com/document/d/${fileId}/edit?usp=sharing&rm=demo`;
@@ -919,7 +1020,15 @@
         embedUrl = `https://docs.google.com/spreadsheets/d/${fileId}/edit?usp=sharing&rm=demo`;
       } else if (mimeType === 'application/vnd.google-apps.presentation') {
         embedUrl = `https://docs.google.com/presentation/d/${fileId}/edit?usp=sharing&rm=demo`;
-      } else {
+      }
+      else if (mimeType === 'application/link') {
+        window.open(url, '_blank');
+        return;
+      }
+      else if (mimeType === 'application/folder') {
+        return;
+      }
+       else {
         // Unsupported file type
         return;
       }
