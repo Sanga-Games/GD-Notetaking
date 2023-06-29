@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Sanga Games  - Docs</title>
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <meta charset="utf-8" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
     <meta name="referrer" content="no-referrer-when-downgrade">
@@ -75,7 +76,7 @@
       }
       #rootcontainer,#AuthScreen
       {
-        display: absolute;
+        position: absolute;
         height:100%;
         width:100%;
       }
@@ -203,17 +204,16 @@
   <body>
 
     <div id="AuthScreen">
-      <button id="signin_button_old"  style="display: none;" onclick="handleAuthClick()">SIGN IN</button>
-      <div id="g_id_onload"
+      <!-- <button id="signin_button"  style="display: block;" onclick="HandleAuth();" >SIGN IN</button> -->
+      <div id="g_id_onload" style="display:none"
           data-client_id="922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com"
-          data-context="signin"
+          data-context="use"
           data-ux_mode="popup"
           data-callback="HandleAuth"
-          data-auto_select="true"
-          data-itp_support="true">
+          data-auto_prompt="false">
       </div>
 
-      <div class="g_id_signin" id="signin_button" 
+      <div class="g_id_signin" id="signin_button" style="display:none"
           data-type="standard"
           data-shape="rectangular"
           data-theme="filled_blue"
@@ -270,6 +270,7 @@
 
 
       let tokenClient;
+      let email="";
       let gapiInited = false;
       let gisInited = false;
       let FilesListJSON = [];
@@ -292,6 +293,7 @@
         });
         gapi.client.load('drive', 'v3');
         gapiInited = true;
+        console.log("gapi Initiated")
         loadPicker();
         maybeEnableButtons();
       }
@@ -299,49 +301,130 @@
       /**
        * Callback after Google Identity Services are loaded.
        */
-      function gisLoaded() {
-        tokenClient = google.accounts.oauth2.initTokenClient({
+      async function gisLoaded() {
+        tokenClient = google.accounts.oauth2.initCodeClient({
           client_id: CLIENT_ID,
           scope: SCOPES,
-          callback: '', // defined later
+          ux_mode: 'redirect',
+          redirect_uri: "https://2cxelspxlziyca4d34g6nmqyxa0xdptg.lambda-url.ap-south-1.on.aws",
+          state: "YOUR_BINDING_VALUE"
+          // ux_mode: 'popup',
+          // callback: (response) => {
+          //   UpdateAcessToken(response.code);
+          //   const xhr = new XMLHttpRequest();
+          //   xhr.open('POST', 'https://2cxelspxlziyca4d34g6nmqyxa0xdptg.lambda-url.ap-south-1.on.aws' , true);
+          //   xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+          //   // Set custom header for CRSF
+          //   xhr.setRequestHeader('X-Requested-With', 'XmlHttpRequest');
+          //   xhr.onload = function() {
+          //     console.log('Auth code response: ' + xhr.responseText);
+          //     HandleAuth();
+          //   };
+          //   xhr.send('code=' + response.code);
+          // },
         });
         gisInited = true;
+        console.log("gis Initiated");
         maybeEnableButtons();
       }
 
-      function HandleAuth()
+      async function HandleAuth(response=null)
       {
         console.log("Trying to handle auth");
-        tokenClient.callback = async (resp) => {
-          if (resp.error !== undefined) {
-            throw (resp);
+        if(response)
+        {
+          let tmp = getEmailFromIdToken(response.credential);
+          if(isValidEmail(tmp))
+          {
+            email = tmp;
+            setCookie("email",email,360);
+            console.log(email);
           }
+          else
+          {
+            email = "";
+          }  
+        }
+
+        let tmpAccessToken = await TryToGetAccessToken();
+        console.log(tmpAccessToken);
+        if(tmpAccessToken && tmpAccessToken!="" && tmpAccessToken != "null")
+        {
+          console.log("Access Token received");
+          UpdateAcessToken(tmpAccessToken);
+        }
+        else
+        {
+          console.log("Requesting auth code");
+          tokenClient.requestCode();
+        }
+      }
+
+      function UpdateAcessToken(AccessToken)
+      {
+        gapi.client.setToken({ access_token: AccessToken });
+        if(document.getElementById('rootcontainer').style.display =='none')
+        {
           document.getElementById('rootcontainer').style.display = 'block';
           document.getElementById('AuthScreen').style.display = 'none';
           fetchUserInfo();
           fetchConfigJson();
-          // Schedule the token renewal before it expires
-          scheduleTokenRenewal();
-        };
-        tokenClient.requestAccessToken({ prompt: '' });
+        }
+        else
+        {
+          console.log("Only Access Token refereshed");
+        }
+        scheduleTokenRenewal();
       }
+
+      async function TryToGetAccessToken() {
+        if(email == "")
+          return "";
+        const url = 'https://2cxelspxlziyca4d34g6nmqyxa0xdptg.lambda-url.ap-south-1.on.aws/access?email=' + email;
+
+        try {
+          const response = await fetch(url);
+          const data = await response.text();
+          console.log(response);
+          return data;
+        } catch (error) {
+          console.error('Error:', error);
+          return "";
+        }
+      }
+
+
+      function getEmailFromIdToken(idToken) {
+        try {
+          const tokenPayload = idToken.split('.')[1];
+          const decodedPayload = atob(tokenPayload);
+          const payloadObj = JSON.parse(decodedPayload);
+          const email = payloadObj.email;
+          return email;
+        } catch (error) {
+          console.error('Error decoding ID token:', error);
+          return null;
+        }
+      }
+
+      function isValidEmail(email) {
+        // Regular expression pattern for email validation
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        // Test the email against the pattern
+        return emailPattern.test(email);
+      }
+
 
       // Schedule the token renewal before it expires
       function scheduleTokenRenewal() {
-        var token = gapi.client.getToken();
-        console.log(token);
-        if (token && token.expires_in) {
-          if (token.expires_in > 0) {
-            // Schedule the token renewal 1 minute before it expires
-            setTimeout(renewAccessToken, token.expires_in * 1000);
-          }
-        }
+        setTimeout(renewAccessToken, 50 * 60 * 1000);
       }
 
       // Renew the access token
       async function renewAccessToken() {
         console.log("trying to renew access token");
-        tokenClient.requestAccessToken({ prompt: '' });
+        UpdateAcessToken(await TryToGetAccessToken());
       }
 
 
@@ -350,7 +433,16 @@
        */
       function maybeEnableButtons() {
         if (gapiInited && gisInited) {
-          document.getElementById('signin_button').style.display = 'block';
+          email = getCookie("email");
+          if(email && email != "")
+          {
+            HandleAuth();
+          }
+          else
+          {
+            document.getElementById('signin_button').style.display = 'block';
+            document.getElementById('g_id_onload').style.display = 'block';
+          }
         }
       }
 
@@ -360,12 +452,14 @@
       function handleSignoutClick() {
         const token = gapi.client.getToken();
         if (token !== null) {
-          google.accounts.oauth2.revoke(token.access_token);
+          //google.accounts.oauth2.revoke(token.access_token);
           gapi.client.setToken('');
           document.getElementById('rootcontainer').style.display = 'none';
           document.getElementById('AuthScreen').style.display = 'block';
+          document.getElementById('signin_button').style.display = 'block';
+            document.getElementById('g_id_onload').style.display = 'block';
           // Delete the access token cookie
-          setCookie("access_token", "", -1);
+          setCookie("email", "", -1);
         }
       }
 
@@ -384,6 +478,7 @@
         document.getElementById("EmailDisplay").innerText = EmailArray[0].toUpperCase();
 
         // Use the email and picture URL as needed (e.g., display in the UI)
+        setCookie("email",email,360);
         console.log('Email:', email);
         console.log('Picture URL:', pictureUrl);
       } catch (error) {
