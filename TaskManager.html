@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani&display=swap" rel="stylesheet">
+
+    <title>TaskBoard</title>
+
+    <style>
+
+      body{
+        font-family: 'Rajdhani', sans-serif;
+      }
+
+      .table-container {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-around;
+      }
+  
+      .table-container .table {
+        flex: 1;
+        margin-right: 10px;
+        margin-left: 10px;
+      }
+
+      table caption {
+      caption-side: top;
+      text-align: center;
+      font-weight: bold;
+      padding: 5px;
+      font-size: 30px;
+      }
+
+      .content-table
+       {
+         border-collapse: collapse;
+         margin: 5px 0;
+         font-size: 1.15em;
+         min-width: 400px;
+         border-radius: 5px 5px 0 0;
+         overflow: hidden;
+         box-shadow: 0 0 20px rgba(0,0,0,0.15);
+       }
+
+       .content-table thead tr {
+        background-color: #009879;
+        color: #ffffff;
+        text-align: left;
+        font-weight: bold;
+       }
+
+       .content-table th,
+       .content-table td {
+          padding: 12px 15px;
+
+       }
+
+       .content-table tbody tr {
+        border-bottom: 1px solid #dddddd;
+       }
+
+       .content-table tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+       }
+
+       .center-heading {
+            text-align: center;
+            margin: 30px;
+            font-size: 60px;
+        }
+
+    </style>
+
+</head>
+<body>
+  <h1 class="center-heading">Task Board</h1>
+  <div class="table-container">
+    <table id="taskTable1" class="content-table">
+      <caption id="usercaption1"></caption>
+      <thead>
+        <tr>
+          <th scope="col">Sl. No</th>
+          <th scope="col">Title</th>
+          <th scope="col">Deadline</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody1">
+      </tbody>
+    </table>
+
+    <table id="taskTable2" class="content-table">
+      <caption id="usercaption2"></caption>
+      <thead>
+        <tr>
+          <th scope="col">Sl. No</th>
+          <th scope="col">Title</th>
+          <th scope="col">Deadline</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody2">
+      </tbody>
+    </table>
+
+    <table id="taskTable3" class="content-table">
+      <caption id="usercaption3"></caption>
+      <thead>
+        <tr>
+          <th scope="col">Sl. No</th>
+          <th scope="col">Title</th>
+          <th scope="col">Deadline</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody3">
+      </tbody>
+    </table>
+  </div>
+  <script>
+
+window.onload = function() 
+  {
+    var delayInMilliseconds = 60000;
+    setInterval(CallLoadJsonObject, delayInMilliseconds);
+
+    setInterval(LoadAllData, 30000);
+  };
+
+
+// LOAD THE JSON OBJECT INSIDE THE PAGE
+
+function CallLoadJsonObject()
+{
+  LoadJsonObject("https://hwahuuqccynu2uqg5hp7rhkf6e0vpxbx.lambda-url.ap-south-1.on.aws");
+}
+
+  async function LoadJsonObject(URL) // Function will be called every 5 mins to upadte the JsonObject
+  {
+    const response = await fetch(URL);
+    const Data = await response.json();
+
+    ReceivedJsonData = Data;
+    console.log("LoadJsonObjectCalled");
+
+    LoadDataForFirstTime();
+
+  }
+
+  LoadJsonObject("https://hwahuuqccynu2uqg5hp7rhkf6e0vpxbx.lambda-url.ap-south-1.on.aws");
+
+  var ReceivedJsonData; // GLOBAL JSON OBJECT VARIABLE TO ACCESS THE VALUES EVERYWHERE  
+
+  function LoadTableData(TableID, captionID, ReceivedJsonData, BodyID, IndexNo)
+  {
+
+    var table = document.getElementById(TableID);
+    table.style.display = "table"
+
+    var Jsonlength = ReceivedJsonData.length - 1;
+
+    if(IndexNo > Jsonlength)
+    {
+      var captionbody = document.getElementById(captionID);
+      captionbody.textContent = "";
+
+      var CurrentTableBody = document.getElementById(BodyID);
+      CurrentTableBody.innerHTML = "";
+
+      var table = document.getElementById(TableID);
+      table.style.display = "none";
+
+      return;
+    }
+
+    var captionbody = document.getElementById(captionID);
+    captionbody.textContent = ReceivedJsonData[IndexNo].user + "'s Tasklist";
+
+    var CurrentTableBody = document.getElementById(BodyID);
+    CurrentTableBody.innerHTML = "";
+    var tasklistData = ReceivedJsonData[IndexNo].tasklist;
+
+    tasklistData.forEach(function(task, index) 
+    {
+
+      var row1 = document.createElement("tr");
+
+      var slNoCell1 = document.createElement("th");
+      slNoCell1.setAttribute("scope", "row");
+      slNoCell1.textContent = index + 1;
+
+      var titleCell1 = document.createElement("td");
+      titleCell1.textContent = task.title;
+
+      var deadlineCell1 = document.createElement("td");
+      deadlineCell1.textContent = task.deadline;
+
+      row1.appendChild(slNoCell1);
+      row1.appendChild(titleCell1);
+      row1.appendChild(deadlineCell1);
+
+      CurrentTableBody.appendChild(row1);
+
+    });
+
+  }
+
+  function LoadAllData()
+  {
+    console.log("LoadAllDataCalled");
+    var InitialIndex1 = 0;
+    var InitialIndex2 = 1;
+    var InitialIndex3 = 2;
+
+    LoadTableData("taskTable1", "usercaption1",ReceivedJsonData,"tableBody1",currentIndex1);
+    LoadTableData("taskTable2", "usercaption2",ReceivedJsonData,"tableBody2",currentIndex2);
+    LoadTableData("taskTable3", "usercaption3",ReceivedJsonData,"tableBody3",currentIndex3);
+
+
+    var JsonLasIndex = ReceivedJsonData.length -1;
+
+    if(currentIndex1 > JsonLasIndex || currentIndex2 >JsonLasIndex || currentIndex3 > JsonLasIndex)
+    {
+      currentIndex1 = InitialIndex1;
+      currentIndex2 = InitialIndex2;
+      currentIndex3 = InitialIndex3;
+    }
+    else
+    {
+      currentIndex1 = currentIndex3 +1;
+      currentIndex2 = currentIndex3 +2;
+      currentIndex3 = currentIndex3 +3;
+
+      if(currentIndex1 > JsonLasIndex && currentIndex2 >JsonLasIndex && currentIndex3 > JsonLasIndex)
+      {
+        currentIndex1 = InitialIndex1;
+        currentIndex2 = InitialIndex2;
+        currentIndex3 = InitialIndex3;
+      }
+    }
+
+  }
+
+  function LoadDataForFirstTime()
+  {
+    if( bisFirstTime)
+    {
+      LoadAllData();
+      bisFirstTime = false
+    }
+
+
+  }
+  
+  var currentIndex1 = 0;
+  var currentIndex2 = 1;
+  var currentIndex3 = 2;
+
+  var bisFirstTime = true;
+
+  </script>
+    
+</body>
+</html>
