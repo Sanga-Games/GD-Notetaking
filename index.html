@@ -87,6 +87,14 @@
         left: 50%;
         -ms-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
+        padding:10px;
+        background:#2f78ff;
+        font-size: 15px;
+        color:white;
+        border-radius: 8px;
+        border: 0px;
+        cursor:pointer;
+        font-weight:700;
       }
       #signout_button
       {
@@ -164,7 +172,7 @@
       {
         font-size:11px;
       }
-      #FileEmbed
+      #FileEmbed, #Content
       {
         position:absolute;
         width:100%;
@@ -204,8 +212,8 @@
   <body>
 
     <div id="AuthScreen">
-      <!-- <button id="signin_button"  style="display: block;" onclick="HandleAuth();" >SIGN IN</button> -->
-      <div id="g_id_onload" style="display:none"
+      <button id="signin_button"  style="display: none;" onclick="HandleAuth();" >SIGN IN</button>
+      <!-- <div id="g_id_onload" style="display:none"
           data-client_id="922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com"
           data-context="use"
           data-ux_mode="popup"
@@ -221,7 +229,7 @@
           data-size="large"
           data-logo_alignment="left"
           data-width="200">
-      </div>
+      </div> -->
     </div>
     <div id="rootcontainer" style="display:none;">
       <div id="sidebar">
@@ -253,6 +261,7 @@
       </div>
       <div id="contentholder">
         <iframe id="FileEmbed" ng-non-bindable="" frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no"  ></iframe>
+        <div id="content"></div>
       </div>
     </div>
 
@@ -262,10 +271,11 @@
       const CLIENT_ID = '922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com';
       const API_KEY = 'AIzaSyCd0pkvt1TxnXVz4uZa83Mp8zMfl77_3hU';
       // Discovery doc URL for APIs used by the quickstart
-      const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+      const DISCOVERY_DOC1 = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'; 
+      const DISCOVERY_DOC2= 'https://www.googleapis.com/discovery/v1/apis/driveactivity/v2/rest';
       // Authorization scopes required by the API; multiple scopes can be
       // included, separated by spaces.
-      const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
+      const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.activity.readonly';
 
 
 
@@ -289,7 +299,7 @@
       async function initializeGapiClient() {
         await gapi.client.init({
           apiKey: API_KEY,
-          discoveryDocs: [DISCOVERY_DOC],
+          discoveryDocs: [DISCOVERY_DOC1, DISCOVERY_DOC2],
         });
         gapi.client.load('drive', 'v3');
         gapiInited = true;
@@ -307,21 +317,7 @@
           scope: SCOPES,
           ux_mode: 'redirect',
           redirect_uri: "https://2cxelspxlziyca4d34g6nmqyxa0xdptg.lambda-url.ap-south-1.on.aws",
-          state: "YOUR_BINDING_VALUE"
-          // ux_mode: 'popup',
-          // callback: (response) => {
-          //   UpdateAcessToken(response.code);
-          //   const xhr = new XMLHttpRequest();
-          //   xhr.open('POST', 'https://2cxelspxlziyca4d34g6nmqyxa0xdptg.lambda-url.ap-south-1.on.aws' , true);
-          //   xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-          //   // Set custom header for CRSF
-          //   xhr.setRequestHeader('X-Requested-With', 'XmlHttpRequest');
-          //   xhr.onload = function() {
-          //     console.log('Auth code response: ' + xhr.responseText);
-          //     HandleAuth();
-          //   };
-          //   xhr.send('code=' + response.code);
-          // },
+          state: window.location.href
         });
         gisInited = true;
         console.log("gis Initiated");
@@ -331,6 +327,7 @@
       async function HandleAuth(response=null)
       {
         console.log("Trying to handle auth");
+        console.log(email);
         if(response)
         {
           let tmp = getEmailFromIdToken(response.credential);
@@ -431,6 +428,8 @@
       /**
        * Enables user interaction after all libraries are loaded.
        */
+       
+
       function maybeEnableButtons() {
         if (gapiInited && gisInited) {
           email = getCookie("email");
@@ -440,8 +439,24 @@
           }
           else
           {
-            document.getElementById('signin_button').style.display = 'block';
-            document.getElementById('g_id_onload').style.display = 'block';
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+            email = urlParams.get('email')
+            if(email && email != "")
+            {
+              setCookie("email",email,360);
+              var url = window.location.href
+              console.log(url);
+              const myArray = url.split("?");
+              url = myArray[0];
+              console.log(url);
+              window.open(url,'_self');
+            }
+            else
+            {
+              document.getElementById('signin_button').style.display = 'block';
+              //document.getElementById('g_id_onload').style.display = 'block';
+            }
           }
         }
       }
@@ -450,17 +465,16 @@
        *  Sign out the user upon button click.
        */
       function handleSignoutClick() {
+        // Delete the access token cookie
+        setCookie("email", "", -1);
+        document.getElementById('rootcontainer').style.display = 'none';
+        document.getElementById('AuthScreen').style.display = 'block';
+        document.getElementById('signin_button').style.display = 'block';
         const token = gapi.client.getToken();
         if (token !== null) {
-          //google.accounts.oauth2.revoke(token.access_token);
+          google.accounts.oauth2.revoke(token.access_token);
           gapi.client.setToken('');
-          document.getElementById('rootcontainer').style.display = 'none';
-          document.getElementById('AuthScreen').style.display = 'block';
-          document.getElementById('signin_button').style.display = 'block';
-            document.getElementById('g_id_onload').style.display = 'block';
-          // Delete the access token cookie
-          setCookie("email", "", -1);
-        }
+        }  
       }
 
       async function fetchUserInfo() {
@@ -1302,6 +1316,8 @@
         }
         return "";
       }
+
+
     </script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
