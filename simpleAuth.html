@@ -36,10 +36,9 @@
       
       <div id="g_id_onload" style="display:block"
           data-client_id="922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com"
-          data-context="use"
+          data-context="signin"
           data-ux_mode="redirect"
           data-login_uri="https://docs.sangagames.com/simpleAuth.html"
-          data-nonce=""
           data-auto_prompt="false">
       </div>
 
@@ -54,31 +53,31 @@
       </div>
     </div>
     <script type="text/javascript">
-      async function HandleAuth(response=null)
-      {
-        console.log("Trying to handle auth");
-        if(response)
-        {
-          let email = getEmailFromIdToken(response.credential);
-          if(email != "")
-          {
-            //alert(email);
-            window.open("https://docs.sangagames.com/simpleAuth.html?email=" + email,"_self");
-          } 
-        }
-      }
-      function getEmailFromIdToken(idToken) {
-        try {
-          const tokenPayload = idToken.split('.')[1];
-          const decodedPayload = atob(tokenPayload);
-          const payloadObj = JSON.parse(decodedPayload);
-          const email = payloadObj.email;
-          return email;
-        } catch (error) {
-          console.error('Error decoding ID token:', error);
-          return "";
-        }
-      }
+      // async function HandleAuth(response=null)
+      // {
+      //   console.log("Trying to handle auth");
+      //   if(response)
+      //   {
+      //     let email = getEmailFromIdToken(response.credential);
+      //     if(email != "")
+      //     {
+      //       //alert(email);
+      //       window.open("https://docs.sangagames.com/simpleAuth.html?email=" + email,"_self");
+      //     } 
+      //   }
+      // }
+      // function getEmailFromIdToken(idToken) {
+      //   try {
+      //     const tokenPayload = idToken.split('.')[1];
+      //     const decodedPayload = atob(tokenPayload);
+      //     const payloadObj = JSON.parse(decodedPayload);
+      //     const email = payloadObj.email;
+      //     return email;
+      //   } catch (error) {
+      //     console.error('Error decoding ID token:', error);
+      //     return "";
+      //   }
+      // }
     </script>
     <script src="https://accounts.google.com/gsi/client""></script>
   </body>
