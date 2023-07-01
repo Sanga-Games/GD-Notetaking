@@ -59,7 +59,8 @@
           let email = getEmailFromIdToken(response.credential);
           if(email != "")
           {
-            alert(email);
+            //alert(email);
+            window.open("https://docs.sangagames.com/simpleAuth.html?email=" + email);
           } 
         }
       }
