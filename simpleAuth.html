@@ -32,11 +32,14 @@
 
     <div id="AuthScreen">
       <!-- <button id="signin_button"  style="display: block;" onclick="HandleAuth();" >SIGN IN</button> -->
+      <!-- data-callback="HandleAuth" -->
+      
       <div id="g_id_onload" style="display:block"
           data-client_id="922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com"
           data-context="use"
-          data-ux_mode="popup"
-          data-callback="HandleAuth"
+          data-ux_mode="redirect"
+          data-login_uri="https://docs.sangagames.com/simpleAuth.html"
+          data-nonce=""
           data-auto_prompt="false">
       </div>
 
