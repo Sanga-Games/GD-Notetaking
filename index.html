@@ -31,6 +31,80 @@
 }
 
 
+.popup-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup {
+      background-color: #fff;
+      width: 400px;
+      padding: 20px;
+      border-radius: 5px;
+    }
+
+    .popup h2 {
+      margin-top: 0;
+    }
+
+    .popup label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .popup input[type="text"] {
+      width: 100%;
+      padding: 5px;
+    }
+
+    .workspaces-list {
+      list-style-type: none;
+      padding: 0;
+      margin-bottom: 20px;
+    }
+
+    .workspace-item {
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      background-color: #f9f9f9;
+    }
+
+    .workspace-item .drag-handle {
+      cursor: move;
+      margin-right: 10px;
+    }
+
+    .workspace-item .delete-button {
+      color: red;
+      cursor: pointer;
+    }
+
+    .popup button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .delete-button
+    {
+      font-weight:700;
+      font-size:15px;
+      padding:10px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
 .jstree-contextmenu {
   background-color: #f5f5f5; /* Set the background color */
@@ -172,7 +246,17 @@
       {
         font-size:11px;
       }
-      #FileEmbed, #Content
+      .FileEmbed
+      {
+        position:absolute;
+        width:100%;
+        height:100%;
+        border:none;
+        box-sizing: border-box;
+        display:none;
+      }
+      
+      #Content
       {
         position:absolute;
         width:100%;
@@ -196,17 +280,54 @@
         flex-grow: 1;
         margin:4px;
         border-radius: 5px;
-        border: 1px solid #efefef;
+        border: 1px solid #a6a6a6;
         background-color: white;
         color:#777;
         font-weight:700;
         cursor:pointer;
+        font-size: 9px;
       }
       .QuickButtons:hover
       {
         background-color: rgb(212, 227, 255);
-        border: 1px solid #999;
+        border: 1px solid #565656;
       }
+
+      .progress-container {
+        position: fixed;
+        top:0px;
+        left:0px;
+        width: 100%;
+        height: 5px;
+      }
+
+      .progress-bar {
+        position:absolute;
+        left:0px;
+        top:0px;
+        width: 0%;
+        height: 100%;
+        background-color: #4caf50;
+        transition: width 2s;
+        display:none;
+      }
+
+      .progress-bar-animate {
+        width: 0%;
+        height: 100%;
+        background-color: #4caf50;
+        animation: progressBarAnimation 2s forwards;
+      }
+
+      @keyframes progressBarAnimation {
+        from {
+          width: 0%;
+        }
+        to {
+          width: 100%;
+        }
+      }
+
     </style>
   </head>
   <body>
@@ -242,9 +363,10 @@
           </div>
         </div>
         <div id="QuickButtonsContainer" >
-            <button class="QuickButtons" title="Search" style="margin-left:10px;">🔍</button>
-            <button class="QuickButtons"  title="Activity">📰</button>
-            <button class="QuickButtons"  title="Open in new Tab" onclick="OpenDocInNewTab()" style="margin-right:10px;">🔗</button>
+            <!-- <button class="QuickButtons" title="Search" style="margin-left:10px;">🔍</button>
+            <button class="QuickButtons"  title="Activity">📰</button> -->
+            <button class="QuickButtons"  title="Manage Workspaces" onclick="openEditor()" style="margin-left:10px;">Workspaces Manager</button>
+            <button class="QuickButtons"  title="Open in new Tab" onclick="OpenDocInNewTab()" style="margin-right:10px;">Open in new Tab</button>
         </div>
         <div id="FileListContainer">
           <div style="flex-grow:1; margin-top:75px;margin-bottom:50px; position:relative;">
@@ -260,13 +382,42 @@
         </div>
       </div>
       <div id="contentholder">
-        <iframe id="FileEmbed" ng-non-bindable="" frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no"  ></iframe>
-        <div id="content"></div>
+        <iframe class="FileEmbed" onload="iframeLoaded(event)" ng-non-bindable="" frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no"  ></iframe>
+        <iframe class="FileEmbed" onload="iframeLoaded(event)" ng-non-bindable="" frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no"  ></iframe>
+        <iframe class="FileEmbed" onload="iframeLoaded(event)" ng-non-bindable="" frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no"  ></iframe>
+        <iframe class="FileEmbed" onload="iframeLoaded(event)" ng-non-bindable="" frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no"  ></iframe>
+        <!-- <div id="content"></div> -->
       </div>
     </div>
 
+    <div id="popupContainer" class="popup-container" style="display: none;">
+      <div class="popup">
+        <h2>Workspace Editor</h2>
+  
+        <h3>Workspaces:</h3>
+        <ul id="workspacesList" class="workspaces-list"></ul>
+  
+        <button onclick="saveChanges()">Save Changes</button>
+        <button onclick="closeEditor()">Close</button>
+      </div>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
 
     <script type="text/javascript">
+
+      function iframeLoaded(event) {
+        var iframe = iFramesOrdered[3][0];
+        var progressBar = document.getElementById('progressBar');
+
+        progressBar.classList.remove('progress-bar-animate');
+        progressBar.style.display = 'none';
+        iframe.style.display = 'block';
+      }
+
+
 
       const CLIENT_ID = '922877380869-464psb1ou671ss81ktsjfjo2to7hgtsi.apps.googleusercontent.com';
       const API_KEY = 'AIzaSyCd0pkvt1TxnXVz4uZa83Mp8zMfl77_3hU';
@@ -283,8 +434,22 @@
       let email="";
       let gapiInited = false;
       let gisInited = false;
-      let FilesListJSON = [];
       let WorkspacesJSON = {};
+
+      let FileHierarchyID;
+      let initFileHierarchy;
+      let CurrentFileHierarchy;
+      let CurrentServerFileHierarchy;
+      let FinalHierarchy;
+      let LastReadETag;
+
+      let isSavingInProgress;
+      let resaveNeeded;
+      let TreeRefreshNeeded;
+
+      let FileHierarchyTimeout;
+      let TreeRefreshTimeout;
+
       /**
        * Callback after api.js is loaded.
        */
@@ -412,7 +577,6 @@
         return emailPattern.test(email);
       }
 
-
       // Schedule the token renewal before it expires
       function scheduleTokenRenewal() {
         setTimeout(renewAccessToken, 50 * 60 * 1000);
@@ -424,12 +588,9 @@
         UpdateAcessToken(await TryToGetAccessToken());
       }
 
-
       /**
        * Enables user interaction after all libraries are loaded.
        */
-       
-
       function maybeEnableButtons() {
         if (gapiInited && gisInited) {
           email = getCookie("email");
@@ -500,7 +661,6 @@
       }
     }
 
-
     // Define the function to handle folder selection
     function handleFolderSelection(data) {
       console.log('picker callback called');
@@ -546,47 +706,10 @@
       picker.setVisible(true);
     }
 
-    async function old_getFileHierarchy(directoryId) {
-      let response;
-      try {
-        response = await gapi.client.drive.files.list({
-          'q': `'${directoryId}' in parents and trashed = false`,
-          'pageSize': 100,
-          'fields': 'files(id, name, mimeType)',
-        });
-      } catch (err) {
-        document.getElementById('FileListContent').innerText = err.message;
-        return [];
-      }
-
-      console.log(response);
-      const files = response.result.files;
-      if (!files || files.length === 0) {
-        document.getElementById('FileListContent').innerText = 'No files found.';
-        return [];
-      }
-
-      const FilesListJSON = [];
-      for (const file of files) {
-        const fileInfo = {
-          id: file.id,
-          name: file.name,
-          mimeType: file.mimeType,
-          level: level,
-        };
-        if (file.mimeType === 'application/vnd.google-apps.folder') {
-          fileInfo.children = await getFileHierarchy(file.id, level + 1);
-        }
-        FilesListJSON.push(fileInfo);
-      }
-
-      return FilesListJSON;
-    }
-
-
     function timeuuid() {
       var dt = new Date().getTime();
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,
+      let randomNumber = Math.floor(Math.random() * 100001);
+      return ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'+ randomNumber.toString()).replace(/[xy]/g,
       function( c ) {
           var rnd = Math.random() * 16;//random number in range 0 to 16
           rnd = (dt + rnd)%16 | 0;
@@ -638,43 +761,29 @@
     }
 
 
-
-    async function getFileHierarchy(directoryId) 
+    async function GetFileHierarchyID()
     {
+      FileHierarchyID = "";
       // Check if FileHierarchy.json exists
       let response;
-      let fileHierarchyJson = null;
       try {
         response = await gapi.client.drive.files.list({
-          'q': `'${directoryId}' in parents and trashed = false and name = 'FileHierarchy.json'`,
+          'q': `'${WorkspacesJSON.ActiveWorkspaceID}' in parents and trashed = false and name = 'FileHierarchy.json'`,
           'pageSize': 1,
-          'fields': 'files(id, name, mimeType)',
+          'fields': 'files(id)',
         });
       } catch (err) {
-        document.getElementById('FileListContent').innerText = err.message;
+        console.log(err.message);
         return [];
       }
 
       const files = response.result.files;
       if (files && files.length > 0) {
-        // FileHierarchy.json exists, retrieve its content
-        console.log("FileHierarchy.json exists")
-        const fileId = files[0].id;
-        try {
-          response = await gapi.client.drive.files.get({
-            'fileId': fileId,
-            'alt': 'media'
-          });
-          fileHierarchyJson = JSON.parse(response.body);
-        } catch (err) {
-          document.getElementById('FileListContent').innerText = err.message;
-          return [];
-        }
+        FileHierarchyID = files[0].id;
       }
-
-      if (!fileHierarchyJson) {
-        // FileHierarchy.json does not exist, create new hierarchy
-        fileHierarchyJson = [{
+      else
+      {
+        let fileHierarchyJson = [{
             id: timeuuid(),
             text: 'Content',
             level:0,
@@ -695,63 +804,82 @@
             }
           }
         ];
-
-        // Retrieve files in the current directory
-        let jsonData = await GetAllFilesInFlatHierarchy(directoryId);
+          // Retrieve files in the current directory
+        let jsonData = await GetAllFilesInFlatHierarchy(WorkspacesJSON.ActiveWorkspaceID);
         fileHierarchyJson[0].children = jsonData;
 
-      }
+        const token = gapi.auth.getToken().access_token;
+        const headers = new Headers({ 'Authorization': 'Bearer ' + token });
 
-      const token = gapi.auth.getToken().access_token;
-      const headers = new Headers({ 'Authorization': 'Bearer ' + token });
-
-      // Save the updated hierarchy to FileHierarchy.json
-      if (fileHierarchyJson) {
-        try {
-          if (files && files.length > 0) {
-            console.log("updating file");
-            const fileId = files[0].id;
-            fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-              method: 'PATCH',
-              headers: headers,
-              body: JSON.stringify(fileHierarchyJson)
-            })
-              .then(res => res.json())
-              .then(res => console.log(res))
-              .catch(err => console.error(err));
-
-          } else {
-            console.log("creating file");
-            const fileMetadata = {
+        const fileMetadata = {
               name: 'FileHierarchy.json',
-              parents: [directoryId]
-            };
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-            form.append('file', new Blob([JSON.stringify(fileHierarchyJson)], { type: 'application/json' }));
+              parents: [WorkspacesJSON.ActiveWorkspaceID]
+        };
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+        form.append('file', new Blob([JSON.stringify(fileHierarchyJson)], { type: 'application/json' }));
 
-             // File does not exist, create using POST
-             fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-              method: 'POST',
-              headers: headers,
-              body: form
-            })
-              .then(res => res.json())
-              .then(res => console.log(res))
-              .catch(err => console.error(err));
-          }
-        } catch (err) {
-          document.getElementById('FileListContent').innerText = err.message;
-          return [];
-        }
+        // File does not exist, create using POST
+        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+          method: 'POST',
+          headers: headers,
+          body: form
+        })
+          .then(res => res.json())
+          .then(res => {console.log(res); FileHierarchyID = res.id;})
+          .catch(err => console.error(err));
+
       }
+    }
 
+    //get latest json data of file hierarchy from FIleHierarchy.json stored in drive folder, will create one if none is found.
+    async function getFileHierarchy() 
+    {
+      let fileHierarchyJson;
+      try {
+        response = await gapi.client.drive.files.get({
+          'fileId': FileHierarchyID,
+          'alt': 'media'
+        });
+        fileHierarchyJson = JSON.parse(response.body);
+      } catch (err) {
+        console.log(err.message);
+        return [];
+      }
+      initFileHierarchy = JSON.parse(JSON.stringify(fileHierarchyJson));
       return fileHierarchyJson;
     }
 
+    let previousModifiedTime = null;
+    async function CheckIfHierarchyModifiedOnServer()
+    {
+      try {
+        const response = await gapi.client.drive.files.get({
+          'fileId': FileHierarchyID,
+          'fields': 'modifiedTime'
+        });
+        
+        const currentModifiedTime = response.result.modifiedTime;
+        if (currentModifiedTime === previousModifiedTime) {
+          previousModifiedTime = currentModifiedTime;
+          return false;
+        }
+        else
+        {
+          previousModifiedTime = currentModifiedTime;
+          return true;
+        }
+      } catch (err) {
+        console.log(err.message);
+        return false;
+      }
+    }
 
+    let TreeLoadStartTime;
+    let isTreeloadingFirstTime = true;
+    //handles JsTree file hierarchy initialization and assign event handlers
     function initializeFileTree(fileData) {
-
+      TreeLoadStartTime = new Date().getTime();
       // Destroy the existing jstree instance if it exists
       if ($('#FileListContent').jstree()) {
         $('#FileListContent').jstree('destroy');
@@ -812,16 +940,16 @@
                   CreateNewFile(data,'application/vnd.google-apps.presentation',"New Presentation");
                 }
               },
-              addLink: {
-                label: 'Add Link',
-                action: function(data) {
-                  // Handle the Add Presentation action
-                  console.log('Add Link clicked');
-                  let linkurl = prompt("Paste Url you want to Link");
-                  let linkText = prompt("Type in Alias Name for the Link");
-                  CreateNewLink(data,linkText,linkurl);
-                }
-              },
+              // addLink: {
+              //   label: 'Add Link',
+              //   action: function(data) {
+              //     // Handle the Add Presentation action
+              //     console.log('Add Link clicked');
+              //     let linkurl = prompt("Paste Url you want to Link");
+              //     let linkText = prompt("Type in Alias Name for the Link");
+              //     CreateNewLink(data,linkText,linkurl);
+              //   }
+              // },
               rename: {
                 label: 'Rename',
                 action: function(data) {
@@ -841,7 +969,6 @@
                 label: 'Delete',
                 action: function(data) {
                   // Handle the Add Presentation action
-                  console.log('Add Link clicked');
                   deleteFile(data);
                 },
                 _disabled: function(data) {
@@ -863,6 +990,17 @@
       });
 
       $('#FileListContent').on('select_node.jstree', function (e, data) {
+        if(!isTreeloadingFirstTime)
+        {
+          let currentTime = new Date().getTime();
+          let elapsedTime = currentTime - TreeLoadStartTime
+          isTreeloadingFirstTime = false;
+          if(elapsedTime < 1000)
+            return;
+        }
+        
+
+
         const selectedNodeId = data.node.id;
         const selectedNode = data.instance.get_node(selectedNodeId);
 
@@ -912,45 +1050,115 @@
       
     }
 
-
-    async function UpdateFileHierarchyToWorkspace(directoryId) {
-      const hierarchy = await getFileHierarchy(directoryId);
-      initializeFileTree(hierarchy);
+    //Gets the latest file hierarchy and updates jstree based on that
+    async function UpdateFileHierarchyToWorkspace() {
+      clearTimeout(FileHierarchyTimeout);
+      if(!(isUserInteractingWithJsTree() || isSavingInProgress || TreeRefreshNeeded))
+      {
+        if(await CheckIfHierarchyModifiedOnServer())
+        {
+          console.log("File modified: Getting latest");
+          const hierarchy = await getFileHierarchy();
+          initializeFileTree(hierarchy);
+        }
+        else
+        {
+          console.log("FileNot modified yet");
+        }
+      }
+      FileHierarchyTimeout = setTimeout(UpdateFileHierarchyToWorkspace,60000);
     }
 
+    //Saves the file hierarchy into a json on google drive.
     async function SaveFileHierarchyToWorkspace()
     {
+      if(isSavingInProgress)
+      {
+        resaveNeeded = true;
+        return;
+      }
+      isSavingInProgress = true;
+      //getting latest server file
+      let response;
+      try
+      {
+        response = await gapi.client.drive.files.get({
+          'fileId': FileHierarchyID,
+          'fields': 'etag',
+          'alt': 'media'
+        });
+        LastReadETag = response.headers.etag;
+        CurrentServerFileHierarchy = JSON.parse(response.body);
+      } catch (err) {
+        console.log(err.message);
+      }
+
+      
+      CurrentFileHierarchy = JSON.parse(JSON.stringify($('#FileListContent').jstree(true).get_json()));
+      console.log("init");
+      console.log(initFileHierarchy);
+      console.log("server");
+      console.log(CurrentServerFileHierarchy);
+      console.log("local");
+      console.log(CurrentFileHierarchy);
+
+      const diffpatcher = jsondiffpatch.create();
+      //const diff1 = diffpatcher.diff(initFileHierarchy, CurrentServerFileHierarchy);
+      const diff2 = diffpatcher.diff(initFileHierarchy, CurrentFileHierarchy);
+      FinalHierarchy = diffpatcher.patch(CurrentServerFileHierarchy, diff2);
+      
+      //initializeFileTree(FinalHierarchy);
+      
+      console.log(FinalHierarchy);
+
       console.log("Trying to save file hierarchy");
       accessToken = gapi.auth.getToken().access_token;
       headers = {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          };
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'If-Match': LastReadETag
+      };
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${FileHierarchyID}?uploadType=media`, {
+        method: 'PATCH',
+        headers: headers,
+        body: JSON.stringify(FinalHierarchy)
+      })
+      .then(res => {
+        if (res.ok) {
+          isSavingInProgress = false;
+          initFileHierarchy = JSON.parse(JSON.stringify(FinalHierarchy));
+          if(resaveNeeded)
+          {
+            resaveNeeded = false;
+            SaveFileHierarchyToWorkspace();
+            TreeRefreshNeeded = true;
+            TreeRefreshTimeout = setTimeout(RefreshFileHierarchy,2000);
+          }
+        } else if (res.status === 412) {
+          throw new Error('Precondition Failed: ETag mismatch');
+        } else {
+          throw new Error('Error occurred during request');
+        }
+      })
+      .then(res => console.log(res))
+      .catch(err => {console.error(err); SaveFileHierarchyToWorkspace();});
+    }
 
-      let response;
-      let fileHierarchyJson = null;
-      try {
-        response = await gapi.client.drive.files.list({
-          'q': `'${WorkspacesJSON["ActiveWorkspaceID"]}' in parents and trashed = false and name = 'FileHierarchy.json'`,
-          'pageSize': 1,
-          'fields': 'files(id, name, mimeType)',
-        });
-      } catch (err) {
-        document.getElementById('FileListContent').innerText = err.message;
-        return [];
-      }
-      const files = response.result.files;
-      if (files && files.length > 0) {
-        const fileId = files[0].id;
-        fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-          method: 'PATCH',
-          headers: headers,
-          body: JSON.stringify($('#FileListContent').jstree(true).get_json())
-        })
-          .then(res => res.json())
-          .then(res => console.log(res))
-          .catch(err => console.error(err));
-      }
+    function RefreshFileHierarchy()
+    {
+      clearTimeout(TreeRefreshTimeout);
+       if(TreeRefreshNeeded)
+       {
+          if(!(isUserInteractingWithJsTree() || isSavingInProgress))
+          {
+            TreeRefreshNeeded = false;
+            initializeFileTree(FinalHierarchy);
+          }
+          else
+          {
+            TreeRefreshTimeout = setTimeout(RefreshFileHierarchy,2000);
+          }
+       }
     }
 
     function deleteFile(data) {
@@ -1014,30 +1222,30 @@
         instance.open_node(selectedNode);
     }
 
-    function CreateNewLink(data,name,url)
-    {
-          // Handle the Add Document action
-        const instance = $.jstree.reference(data.reference);
-        const selectedNode = instance.get_node(data.reference);
-        // Create the new child node with the document details
-        const newNodeId = timeuuid();
-        const newNodeText = name;
+    // function CreateNewLink(data,name,url)
+    // {
+    //       // Handle the Add Document action
+    //     const instance = $.jstree.reference(data.reference);
+    //     const selectedNode = instance.get_node(data.reference);
+    //     // Create the new child node with the document details
+    //     const newNodeId = timeuuid();
+    //     const newNodeText = name;
 
-        const newNode = {
-          id: newNodeId,
-          text: newNodeText,
-          data:{
-            locked:false,
-            mimeType: "application/link",
-            url:url
-          }
-        };
+    //     const newNode = {
+    //       id: newNodeId,
+    //       text: newNodeText,
+    //       data:{
+    //         locked:false,
+    //         mimeType: "application/link",
+    //         url:url
+    //       }
+    //     };
 
-        instance.create_node(selectedNode, newNode, 'last');
-        // Select the newly created node
-        instance.select_node(newNode);
-        instance.open_node(selectedNode);
-    }
+    //     instance.create_node(selectedNode, newNode, 'last');
+    //     // Select the newly created node
+    //     instance.select_node(newNode);
+    //     instance.open_node(selectedNode);
+    // }
 
     function CreateNewFile(data,mimeType,name)
     {
@@ -1118,9 +1326,10 @@
       }
     }
 
+        
+    let iFrames  = document.getElementsByClassName("FileEmbed");
+    let iFramesOrdered = [[iFrames[0],"url1"],[iFrames[1],"url2"],[iFrames[2],"url3"],[iFrames[3],"url4"]];
 
-
-    
     async function embedFile(fileId, mimeType,url="") {
       let embedUrl;
       if (mimeType === 'application/vnd.google-apps.document') {
@@ -1142,9 +1351,46 @@
         return;
       }
 
-      const iframe = document.getElementById('FileEmbed');
-      iframe.src = embedUrl;
+      var progressBar = document.getElementById('progressBar');
+      hideAllIframes();
+      let index = findIndexByUrl(embedUrl);
+      if(index == -1)
+      {
+        iFramesOrdered[0][1] = embedUrl;
+        moveElementToLast(0);
+        iFramesOrdered[3][0].src = embedUrl;
+        progressBar.style.display = 'block';
+        progressBar.classList.add('progress-bar-animate');
+      }
+      else
+      {
+        moveElementToLast(index);
+        iFramesOrdered[3][0].style.display = "block";
+      }
     }
+
+
+    function findIndexByUrl(url) {
+      for (var i = 0; i < iFramesOrdered.length; i++) {
+        if (iFramesOrdered[i][1] === url) {
+          return i;
+        }
+      }
+      return -1; // Return -1 if the URL is not found in the array
+    }
+
+    function moveElementToLast(index) {
+      if (index !== -1) {
+        var element = iFramesOrdered.splice(index, 1)[0];
+        iFramesOrdered.push(element);
+      }
+    }
+    function hideAllIframes() {
+      for (var i = 0; i < iFrames.length; i++) {
+        iFrames[i].style.display = 'none';
+      }
+    }
+
 
 
     function OpenDocInNewTab()
@@ -1237,7 +1483,7 @@
 
 
 
-    function fillWorkspacesList() {
+    async function fillWorkspacesList() {
       const workspaceSelector = document.getElementById('WorkspaceSelector');
 
       // Clear existing options
@@ -1262,12 +1508,12 @@
         option.textContent = workspace.name;
         workspaceSelector.appendChild(option);
       });
-
-      UpdateFileHierarchyToWorkspace(WorkspacesJSON["ActiveWorkspaceID"]); 
+      await GetFileHierarchyID();
+      await UpdateFileHierarchyToWorkspace(); 
     }
 
     // Function to handle workspace selection change
-    function handleWorkspaceChange() {
+    async function handleWorkspaceChange() {
       const workspaceSelector = document.getElementById('WorkspaceSelector');
       const selectedWorkspaceId = workspaceSelector.value;
 
@@ -1281,14 +1527,37 @@
         WorkspacesJSON.ActiveWorkspaceID = selectedWorkspace.id;
         WorkspacesJSON.ActiveWorkspaceName = selectedWorkspace.name;
 
-
+        await GetFileHierarchyID();
         // Perform any additional actions with the selected workspace
-        UpdateFileHierarchyToWorkspace(selectedWorkspaceId);
+        await UpdateFileHierarchyToWorkspace();
 
 
         // Save the updated config
         saveConfigJson();
       }
+    }
+
+    function isUserInteractingWithJsTree() {
+      // Check if the user is currently interacting with the tree
+      // For example, you can check if there is an active rename input, a dragged node, or a visible context menu
+      // Return true if the user is interacting, false otherwise
+      
+      // Check if there is an active rename input
+      if ($('.jstree-rename-input').is(':visible')) {
+        return true;
+      }
+      
+      // Check if there is a dragged node (drag and drop action)
+      if ($('.jstree-dnd-parent').length > 0) {
+        return true;
+      }
+      
+      // Check if there is a visible context menu
+      if ($('.vakata-context').is(':visible')) {
+        return true;
+      }
+      
+      return false;
     }
 
 
@@ -1319,10 +1588,161 @@
 
 
     </script>
+
+<script>
+
+
+  var draggedItem = null;
+
+  function openEditor() {
+    var workspacesList = document.getElementById("workspacesList");
+    workspacesList.innerHTML = "";
+
+    // Create list items for each workspace
+    for (var i = 0; i < WorkspacesJSON.Workspaces.length; i++) {
+      var workspace = WorkspacesJSON.Workspaces[i];
+
+      var listItem = document.createElement("li");
+      listItem.className = "workspace-item";
+      listItem.draggable = true;
+
+      var dragHandle = document.createElement("span");
+      dragHandle.className = "drag-handle";
+      dragHandle.innerHTML = "&#9776;";
+      listItem.appendChild(dragHandle);
+
+      var workspaceIdInput = document.createElement("input");
+      workspaceIdInput.type = "text";
+      workspaceIdInput.value = workspace.id;
+      workspaceIdInput.style.display = "none";
+      listItem.appendChild(workspaceIdInput);
+
+      var workspaceNameInput = document.createElement("input");
+      workspaceNameInput.type = "text";
+      workspaceNameInput.value = workspace.name;
+      listItem.appendChild(workspaceNameInput);
+
+      var deleteButton = document.createElement("span");
+      deleteButton.className = "delete-button";
+      deleteButton.innerHTML = "&#9940;";
+      deleteButton.onclick = deleteWorkspace;
+      listItem.appendChild(deleteButton);
+
+      workspacesList.appendChild(listItem);
+    }
+
+    // Enable drag and drop functionality
+    enableDragAndDrop();
+
+    // Show the editor popup
+    document.getElementById("popupContainer").style.display = "flex";
+  }
+
+  function enableDragAndDrop() {
+    var workspaceItems = document.getElementsByClassName("workspace-item");
+    for (var i = 0; i < workspaceItems.length; i++) {
+      workspaceItems[i].addEventListener("dragstart", handleDragStart, false);
+      workspaceItems[i].addEventListener("dragenter", handleDragEnter, false);
+      workspaceItems[i].addEventListener("dragover", handleDragOver, false);
+      workspaceItems[i].addEventListener("dragleave", handleDragLeave, false);
+      workspaceItems[i].addEventListener("drop", handleDrop, false);
+      workspaceItems[i].addEventListener("dragend", handleDragEnd, false);
+    }
+  }
+
+  var draggedIndex = null;
+
+function handleDragStart(e) {
+draggedItem = this;
+draggedIndex = Array.from(this.parentNode.children).indexOf(this);
+e.dataTransfer.effectAllowed = "move";
+}
+
+function handleDrop(e) {
+if (e.stopPropagation) {
+  e.stopPropagation();
+}
+if (draggedItem !== this) {
+  var droppedIndex = Array.from(this.parentNode.children).indexOf(this);
+
+  // Swap the positions of the dragged item and dropped item in the JSON array
+  var temp = WorkspacesJSON.Workspaces[draggedIndex];
+  WorkspacesJSON.Workspaces[draggedIndex] = WorkspacesJSON.Workspaces[droppedIndex];
+  WorkspacesJSON.Workspaces[droppedIndex] = temp;
+
+  // Re-render the workspace editor
+  openEditor();
+}
+return false;
+}
+
+
+
+  function handleDragEnter(e) {
+    this.classList.add("over");
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = "move";
+    return false;
+  }
+
+  function handleDragLeave(e) {
+    this.classList.remove("over");
+  }
+
+
+  function handleDragEnd(e) {
+    this.classList.remove("over");
+  }
+
+  function deleteWorkspace() {
+    var listItem = this.parentNode;
+    var workspacesList = document.getElementById("workspacesList");
+    workspacesList.removeChild(listItem);
+  }
+
+  function saveChanges() {
+    var workspacesList = document.getElementById("workspacesList");
+    var workspaceItems = workspacesList.getElementsByClassName("workspace-item");
+
+    // Update the JSON object with the modified workspace data
+    WorkspacesJSON.Workspaces = [];
+    for (var i = 0; i < workspaceItems.length; i++) {
+      var workspaceItem = workspaceItems[i];
+
+      var workspaceIdInput = workspaceItem.getElementsByTagName("input")[0];
+      var workspaceNameInput = workspaceItem.getElementsByTagName("input")[1];
+
+      var workspace = {
+        "id": workspaceIdInput.value,
+        "name": workspaceNameInput.value
+      };
+
+      WorkspacesJSON.Workspaces.push(workspace);
+    }
+
+    console.log(WorkspacesJSON); // You can modify this line to handle the updated JSON data as needed
+    saveConfigJson();
+    fillWorkspacesList();
+    closeEditor();
+  }
+
+  function closeEditor() {
+    document.getElementById("popupContainer").style.display = "none";
+  }
+</script>
+
+
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.4.1/jsondiffpatch.umd.js" integrity="sha512-wvPp9Q2jEF2EPyAZXidRSPoDk9GNVRINpnIGy7O252SsJHtjNW43hdKmhyN+tFTqGj9ZH2cl7dVMll88+9CyeA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
   
   </body>
 </html>
