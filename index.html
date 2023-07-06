@@ -1395,10 +1395,18 @@
 
     function OpenDocInNewTab()
     {
-      const iframe = document.getElementById('FileEmbed');
-      let url = iframe.src;
-      let newurl= url.replace('&rm=demo','');
-      window.open(newurl, '_blank');
+      console.clear();
+      for (var i=0; i < iFrames.length; i++)
+      {
+        console.log("trying to open in new tab");
+        if(iFrames[i].style.display == "block")
+        {
+          let url = iFrames[i].src;
+          let newurl= url.replace('&rm=demo','');
+          window.open(newurl, '_blank');
+        }
+      }
+      
     }
 
     function fetchConfigJson() {
