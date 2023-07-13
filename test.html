@@ -4,7 +4,11 @@
     console.log("message received");
     console.log(e.data);
     // the logic to collect affliation data and show sign up
-    if(e.origin !== "https://msocialverse.com/exeedme/mojoonpc/") return;
+    if(e.origin !== "https://msocialverse.com/exeedme/mojoonpc/") 
+    {
+      console.log(e.origin);
+      return;
+    }
     alert(e.data);
   });
 </script>
