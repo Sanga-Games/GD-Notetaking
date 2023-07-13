@@ -1,4 +1,14 @@
 
+<script>
+  window.addEventListener('message',function(e){
+    console.log("message received");
+    console.log(e.data);
+    // the logic to collect affliation data and show sign up
+    if(e.origin !== "https://msocialverse.com/exeedme/mojoonpc/") return;
+    alert(e.data);
+  });
+</script>
+
 <div>Welcome to sanga games</div>
 <iframe id="InfleucnerContainer" style="width:1500px;height:700px; border:none"></iframe>
 
@@ -8,10 +18,4 @@
   const influencer = urlParams.get('influencer')
   const IFrame = document.getElementById("InfleucnerContainer");
   IFrame.src = "https://msocialverse.com/exeedme/" + influencer;
-
-  window.addEventListener('message',function(e){
-    // the logic to collect affliation data and show sign up
-    if(e.origin !== "https://msocialverse.com/exeedme/mojoonpc/") return;
-    alert(e.data);
-  });
 </script>
