@@ -1,1 +1,11 @@
-<iframe src = "https://msocialverse.com/mojoonpc"></iframe>
+
+
+<iframe id="InfleucnerContainer" src = "https://msocialverse.com/mojoonpc"></iframe>
+
+<script>
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  const influencer = urlParams.get('influencer')
+  const IFrame = document.getElementByID("InfleucnerContainer");
+  IFrame.src = "https://msocialverse.com/" + influencer;
+</script>
