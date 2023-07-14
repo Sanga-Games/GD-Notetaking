@@ -1,0 +1,30 @@
+<button id="custombtn">click me</button>
+
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-H35XG5CXWX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-H35XG5CXWX');
+</script>
+<script>
+    btn = document.getElementById("custombtn");
+    btn.addEventListener("click", clicked);
+
+    function clicked()
+    {
+        const clientArray = ['apple', 'google', 'msocial']; 
+        const influencerArray = ['mojo', 'vivek', 'piyush']; 
+
+        gtag('event', 'signup', {
+        'event_category': 'engagement',
+        'event_label': 'user_signup',
+        'ClientID': clientArray[Math.floor(Math.random() * clientArray.length)],
+        'InfluencerID': influencerArray[Math.floor(Math.random() * influencerArray.length)]    
+        });
+    }
+
+</script>
