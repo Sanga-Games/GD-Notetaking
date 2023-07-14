@@ -19,11 +19,15 @@
         const clientArray = ['apple', 'google', 'msocial']; 
         const influencerArray = ['mojo', 'vivek', 'piyush']; 
 
+      const currentClient = clientArray[Math.floor(Math.random() * clientArray.length)];
+      const currentInfluencer = influencerArray[Math.floor(Math.random() * influencerArray.length)];
+
         gtag('event', 'signup', {
         'event_category': 'engagement',
         'event_label': 'user_signup',
-        'ClientID': clientArray[Math.floor(Math.random() * clientArray.length)],
-        'InfluencerID': influencerArray[Math.floor(Math.random() * influencerArray.length)]    
+        'ClientID': currentClient,
+        'InfluencerID': currentInfluencer,
+        'CombinedID': currentClient + "_" + currentInfluencer
         });
     }
 
