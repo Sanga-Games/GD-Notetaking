@@ -1376,11 +1376,11 @@
       let embedUrl;
       //embedUrl = `https://docs.google.com/document/d/${fileId}/edit?usp=sharing&rm=embedded`;
       if (mimeType === 'application/vnd.google-apps.document') {
-        embedUrl = `https://docs.google.com/document/d/${fileId}/edit?usp=sharing`;
+        embedUrl = `https://docs.google.com/document/d/${fileId}/edit?usp=sharing&rm=embedded`;
       } else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
-        embedUrl = `https://docs.google.com/spreadsheets/d/${fileId}/edit?usp=sharing`;
+        embedUrl = `https://docs.google.com/spreadsheets/d/${fileId}/edit?usp=sharing&rm=embedded`;
       } else if (mimeType === 'application/vnd.google-apps.presentation') {
-        embedUrl = `https://docs.google.com/presentation/d/${fileId}/edit?usp=sharing`;
+        embedUrl = `https://docs.google.com/presentation/d/${fileId}/edit?usp=sharing&rm=embedded`;
       }
       else if (mimeType === 'application/link') {
         window.open(url, '_blank');
